@@ -14,7 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      distress_posts: {
+        Row: {
+          ai_reason: string
+          confidence_score: number
+          contact: string | null
+          id: string
+          location: string
+          message: string
+          timestamp: string
+          verification_status: string
+        }
+        Insert: {
+          ai_reason?: string
+          confidence_score?: number
+          contact?: string | null
+          id?: string
+          location: string
+          message: string
+          timestamp?: string
+          verification_status?: string
+        }
+        Update: {
+          ai_reason?: string
+          confidence_score?: number
+          contact?: string | null
+          id?: string
+          location?: string
+          message?: string
+          timestamp?: string
+          verification_status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

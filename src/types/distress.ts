@@ -8,11 +8,11 @@ export interface DistressPost {
   id: string;
   message: string;
   location: string;
-  contact?: string;
+  contact?: string | null;
   timestamp: Date;
-  verificationStatus: VerificationStatus;
-  confidenceScore: number;
-  aiReason: string;
+  verification_status: VerificationStatus;
+  confidence_score: number;
+  ai_reason: string;
 }
 
 export interface SubmissionFormData {

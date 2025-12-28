@@ -1,1 +1,4 @@
 project_id = "bnthqwihohlmeuafnlkz"
+
+[functions.verify-distress]
+verify_jwt = false

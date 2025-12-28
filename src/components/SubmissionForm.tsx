@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useDistressStore } from "@/store/distressStore";
+import { useDistressPosts } from "@/hooks/useDistressPosts";
 import { toast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
@@ -28,7 +28,7 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 export function SubmissionForm() {
-  const { addPost, isLoading } = useDistressStore();
+  const { addPost, isLoading } = useDistressPosts();
   const [charCount, setCharCount] = useState(0);
 
   const {
@@ -55,7 +55,7 @@ export function SubmissionForm() {
 
       toast({
         title: "Message Submitted",
-        description: `Verification status: ${post.verificationStatus}`,
+        description: `Verification status: ${post.verification_status}`,
       });
 
       reset();

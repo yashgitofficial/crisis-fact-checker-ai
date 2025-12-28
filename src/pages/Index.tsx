@@ -29,10 +29,10 @@ const Index = () => {
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
           <p className="mb-2">
             <strong className="text-foreground">Crisis Fact-Checker</strong> — 
-            Hackathon Demo Project
+            AI-Powered Distress Verification System
           </p>
           <p>
-            This is an AI-based probability tool for demonstration purposes only. 
+            This is an AI-based probability tool. Results are NOT official verification. 
             Always verify through official emergency services.
           </p>
         </div>

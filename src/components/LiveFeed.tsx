@@ -1,4 +1,4 @@
-import { useDistressStore } from "@/store/distressStore";
+import { useDistressPosts } from "@/hooks/useDistressPosts";
 import { DistressCard } from "./DistressCard";
 import { Radio, Filter, LayoutList } from "lucide-react";
 import { useState } from "react";
@@ -15,23 +15,13 @@ const filterOptions: { value: FilterType; label: string }[] = [
 ];
 
 export function LiveFeed() {
-  const { posts } = useDistressStore();
+  const { posts, genuineCount, warningCount, dangerCount } = useDistressPosts();
   const [filter, setFilter] = useState<FilterType>("all");
 
   const filteredPosts = posts.filter((post) => {
     if (filter === "all") return true;
-    return post.verificationStatus === filter;
+    return post.verification_status === filter;
   });
-
-  const genuineCount = posts.filter(
-    (p) => p.verificationStatus === "Likely Genuine"
-  ).length;
-  const warningCount = posts.filter(
-    (p) => p.verificationStatus === "Needs Verification"
-  ).length;
-  const dangerCount = posts.filter(
-    (p) => p.verificationStatus === "High Scam Probability"
-  ).length;
 
   return (
     <div className="animate-fade-in">
@@ -104,7 +94,7 @@ export function LiveFeed() {
           <LayoutList className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
           <p className="text-muted-foreground">
             {filter === "all"
-              ? "No distress reports yet"
+              ? "No distress reports yet. Submit one above."
               : `No reports matching "${filter}"`}
           </p>
         </div>
