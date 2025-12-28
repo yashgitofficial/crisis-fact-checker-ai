@@ -23,7 +23,7 @@ export function DistressCard({ post, index }: DistressCardProps) {
     <article
       className={cn(
         "card-emergency rounded-xl p-5 border border-border border-l-4",
-        borderColors[post.verificationStatus],
+        borderColors[post.verification_status],
         "animate-fade-in transition-all duration-300 hover:border-border/80"
       )}
       style={{ animationDelay: `${index * 50}ms` }}
@@ -31,8 +31,8 @@ export function DistressCard({ post, index }: DistressCardProps) {
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <StatusBadge
-          status={post.verificationStatus}
-          confidence={post.confidenceScore}
+          status={post.verification_status}
+          confidence={post.confidence_score}
           showConfidence
         />
         <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -59,7 +59,7 @@ export function DistressCard({ post, index }: DistressCardProps) {
       </div>
 
       {/* AI Reasoning */}
-      {post.verificationStatus !== "Pending" && (
+      {post.verification_status !== "Pending" && (
         <div className="bg-secondary/30 rounded-lg p-4 border border-border/50">
           <div className="flex items-center gap-2 mb-2">
             <Brain className="h-4 w-4 text-primary" />
@@ -67,16 +67,16 @@ export function DistressCard({ post, index }: DistressCardProps) {
               AI Analysis
             </span>
             <span className="ml-auto text-xs font-mono text-muted-foreground">
-              Confidence: {Math.round(post.confidenceScore * 100)}%
+              Confidence: {Math.round(post.confidence_score * 100)}%
             </span>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            {post.aiReason}
+            {post.ai_reason}
           </p>
         </div>
       )}
 
-      {post.verificationStatus === "Pending" && (
+      {post.verification_status === "Pending" && (
         <div className="bg-secondary/30 rounded-lg p-4 border border-border/50">
           <div className="flex items-center gap-2">
             <div className="h-4 w-4 rounded-full bg-muted-foreground/30 animate-pulse" />
