@@ -10,8 +10,11 @@ import {
   Clock,
   MapPin,
   TrendingUp,
-  Activity
+  Activity,
+  Download
 } from "lucide-react";
+import { exportToCSV } from "@/utils/exportCSV";
+import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
   PieChart,
@@ -194,11 +197,37 @@ export default function AdminDashboard() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary border border-border">
-              <Activity className="h-3.5 w-3.5 text-status-genuine" />
-              <span className="text-xs font-medium text-muted-foreground">
-                {stats.total} Total Reports
-              </span>
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-2"
+                onClick={() => {
+                  const success = exportToCSV(posts, "crisis-reports");
+                  if (success) {
+                    toast({
+                      title: "Export Complete",
+                      description: `${posts.length} reports exported to CSV`,
+                    });
+                  } else {
+                    toast({
+                      title: "Export Failed",
+                      description: "No reports to export",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                disabled={posts.length === 0}
+              >
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">Export CSV</span>
+              </Button>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary border border-border">
+                <Activity className="h-3.5 w-3.5 text-status-genuine" />
+                <span className="text-xs font-medium text-muted-foreground">
+                  {stats.total} Total Reports
+                </span>
+              </div>
             </div>
           </div>
         </div>
