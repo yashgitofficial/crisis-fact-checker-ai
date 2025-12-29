@@ -1,8 +1,30 @@
-import { ShieldCheck, Radio, BarChart3 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ShieldCheck, Radio, BarChart3, LogOut } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast";
 
 export function Header() {
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Logged out",
+        description: "You have been logged out successfully.",
+      });
+      navigate("/auth", { replace: true });
+    }
+  };
+
   return (
     <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4">
@@ -31,6 +53,17 @@ export function Header() {
                 <span className="hidden sm:inline">Dashboard</span>
               </Button>
             </Link>
+            {user && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="gap-2 text-muted-foreground hover:text-foreground"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Logout</span>
+              </Button>
+            )}
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary border border-border">
               <Radio className="h-3.5 w-3.5 text-status-genuine" />
               <span className="text-xs font-medium text-status-genuine">LIVE</span>
