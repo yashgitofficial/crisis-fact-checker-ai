@@ -136,7 +136,7 @@ export default function Auth() {
           <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-primary/10 border border-primary/20 mb-4">
             <Shield className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Crisis Verify</h1>
+          <h1 className="text-2xl font-bold text-foreground">Crisis Fact-Checker</h1>
           <p className="text-muted-foreground mt-1">
             AI-Powered Distress Signal Verification
           </p>
