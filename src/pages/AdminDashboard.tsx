@@ -11,11 +11,27 @@ import {
   MapPin,
   TrendingUp,
   Activity,
-  Download
+  Download,
+  CalendarIcon
 } from "lucide-react";
 import { exportToCSV } from "@/utils/exportCSV";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { format, subDays, startOfDay, endOfDay, isWithinInterval } from "date-fns";
+import { cn } from "@/lib/utils";
 import {
   PieChart,
   Pie,
@@ -72,9 +88,49 @@ function StatCard({ title, value, subtitle, icon, trend, trendUp }: StatCardProp
   );
 }
 
+type DatePreset = "all" | "today" | "7days" | "30days" | "custom";
+
+interface DateRange {
+  from: Date | undefined;
+  to: Date | undefined;
+}
+
 export default function AdminDashboard() {
   const [posts, setPosts] = useState<DistressPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [datePreset, setDatePreset] = useState<DatePreset>("all");
+  const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
+
+  // Filter posts based on date range
+  const filteredPosts = useMemo(() => {
+    if (datePreset === "all") return posts;
+    
+    let from: Date;
+    let to: Date = endOfDay(new Date());
+    
+    switch (datePreset) {
+      case "today":
+        from = startOfDay(new Date());
+        break;
+      case "7days":
+        from = startOfDay(subDays(new Date(), 7));
+        break;
+      case "30days":
+        from = startOfDay(subDays(new Date(), 30));
+        break;
+      case "custom":
+        if (!dateRange.from) return posts;
+        from = startOfDay(dateRange.from);
+        to = dateRange.to ? endOfDay(dateRange.to) : endOfDay(new Date());
+        break;
+      default:
+        return posts;
+    }
+    
+    return posts.filter(post => 
+      isWithinInterval(post.timestamp, { start: from, end: to })
+    );
+  }, [posts, datePreset, dateRange]);
 
   useEffect(() => {
     async function fetchPosts() {
@@ -101,21 +157,21 @@ export default function AdminDashboard() {
     fetchPosts();
   }, []);
 
-  // Calculate statistics
+  // Calculate statistics based on filtered posts
   const stats = useMemo(() => {
-    const total = posts.length;
-    const genuine = posts.filter(p => p.verification_status === "Likely Genuine").length;
-    const needsCheck = posts.filter(p => p.verification_status === "Needs Verification").length;
-    const scam = posts.filter(p => p.verification_status === "High Scam Probability").length;
-    const pending = posts.filter(p => p.verification_status === "Pending").length;
+    const total = filteredPosts.length;
+    const genuine = filteredPosts.filter(p => p.verification_status === "Likely Genuine").length;
+    const needsCheck = filteredPosts.filter(p => p.verification_status === "Needs Verification").length;
+    const scam = filteredPosts.filter(p => p.verification_status === "High Scam Probability").length;
+    const pending = filteredPosts.filter(p => p.verification_status === "Pending").length;
 
-    const avgConfidence = posts.length > 0 
-      ? posts.reduce((sum, p) => sum + p.confidence_score, 0) / posts.length 
+    const avgConfidence = filteredPosts.length > 0 
+      ? filteredPosts.reduce((sum, p) => sum + p.confidence_score, 0) / filteredPosts.length 
       : 0;
 
     // Geographic breakdown
     const locationCounts: Record<string, number> = {};
-    posts.forEach(post => {
+    filteredPosts.forEach(post => {
       const loc = post.location.split(",")[0].trim().substring(0, 20);
       locationCounts[loc] = (locationCounts[loc] || 0) + 1;
     });
@@ -131,7 +187,7 @@ export default function AdminDashboard() {
       const date = new Date(now);
       date.setDate(date.getDate() - i);
       const dateStr = date.toLocaleDateString('en-US', { weekday: 'short' });
-      const dayPosts = posts.filter(p => {
+      const dayPosts = filteredPosts.filter(p => {
         const postDate = new Date(p.timestamp);
         return postDate.toDateString() === date.toDateString();
       });
@@ -163,7 +219,7 @@ export default function AdminDashboard() {
       genuineRate: total > 0 ? ((genuine / total) * 100).toFixed(1) : "0",
       scamRate: total > 0 ? ((scam / total) * 100).toFixed(1) : "0",
     };
-  }, [posts]);
+  }, [filteredPosts]);
 
   if (loading) {
     return (
@@ -203,11 +259,11 @@ export default function AdminDashboard() {
                 size="sm" 
                 className="gap-2"
                 onClick={() => {
-                  const success = exportToCSV(posts, "crisis-reports");
+                  const success = exportToCSV(filteredPosts, "crisis-reports");
                   if (success) {
                     toast({
                       title: "Export Complete",
-                      description: `${posts.length} reports exported to CSV`,
+                      description: `${filteredPosts.length} reports exported to CSV`,
                     });
                   } else {
                     toast({
@@ -217,7 +273,7 @@ export default function AdminDashboard() {
                     });
                   }
                 }}
-                disabled={posts.length === 0}
+                disabled={filteredPosts.length === 0}
               >
                 <Download className="h-4 w-4" />
                 <span className="hidden sm:inline">Export CSV</span>
@@ -234,6 +290,93 @@ export default function AdminDashboard() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* Date Filter Bar */}
+        <div className="flex flex-wrap items-center gap-3 mb-6 p-4 rounded-xl bg-card border border-border">
+          <span className="text-sm font-medium text-muted-foreground">Filter by:</span>
+          <Select value={datePreset} onValueChange={(value: DatePreset) => setDatePreset(value)}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Time period" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="7days">Last 7 Days</SelectItem>
+              <SelectItem value="30days">Last 30 Days</SelectItem>
+              <SelectItem value="custom">Custom Range</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {datePreset === "custom" && (
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[130px] justify-start text-left font-normal",
+                      !dateRange.from && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange.from ? format(dateRange.from, "MMM d, yyyy") : "Start date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dateRange.from}
+                    onSelect={(date) => setDateRange(prev => ({ ...prev, from: date }))}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+              <span className="text-muted-foreground">to</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[130px] justify-start text-left font-normal",
+                      !dateRange.to && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange.to ? format(dateRange.to, "MMM d, yyyy") : "End date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dateRange.to}
+                    onSelect={(date) => setDateRange(prev => ({ ...prev, to: date }))}
+                    disabled={(date) => dateRange.from ? date < dateRange.from : false}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
+          {datePreset !== "all" && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => {
+                setDatePreset("all");
+                setDateRange({ from: undefined, to: undefined });
+              }}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              Clear filter
+            </Button>
+          )}
+
+          <div className="ml-auto text-sm text-muted-foreground">
+            Showing {filteredPosts.length} of {posts.length} reports
+          </div>
+        </div>
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <StatCard
