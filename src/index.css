@@ -6,6 +6,70 @@
 
 @layer base {
   :root {
+    /* Emergency Response Theme - Light Mode */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 98%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Primary - Emergency Amber */
+    --primary: 38 92% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary - Slate */
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    /* Accent - Alert Blue */
+    --accent: 199 89% 48%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 38 92% 50%;
+
+    --radius: 0.75rem;
+
+    /* Custom Status Colors */
+    --status-genuine: 142 71% 35%;
+    --status-genuine-bg: 142 71% 45% / 0.15;
+    --status-warning: 45 93% 40%;
+    --status-warning-bg: 45 93% 47% / 0.15;
+    --status-danger: 0 84% 50%;
+    --status-danger-bg: 0 84% 60% / 0.15;
+
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(210 40% 98%) 50%, hsl(0 0% 100%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 40% 98%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(38 92% 50%) 0%, hsl(28 92% 45%) 100%);
+    --gradient-alert: linear-gradient(90deg, hsl(0 84% 60% / 0.1) 0%, transparent 100%);
+
+    /* Shadows */
+    --shadow-card: 0 4px 24px -4px hsl(222 47% 11% / 0.1);
+    --shadow-glow: 0 0 40px hsl(38 92% 50% / 0.15);
+    --shadow-danger: 0 0 30px hsl(0 84% 60% / 0.2);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 38 92% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 38 92% 50%;
+  }
+
+  .dark {
     /* Emergency Response Theme - Dark Mode */
     --background: 222 47% 6%;
     --foreground: 210 40% 96%;
@@ -37,8 +101,6 @@
     --border: 217 33% 20%;
     --input: 217 33% 17%;
     --ring: 38 92% 50%;
-
-    --radius: 0.75rem;
 
     /* Custom Status Colors */
     --status-genuine: 142 71% 45%;
