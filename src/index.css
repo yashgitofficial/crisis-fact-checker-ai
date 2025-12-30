@@ -148,6 +148,11 @@
 }
 
 @layer components {
+  .card-emergency {
+    @apply bg-card;
+    box-shadow: var(--shadow-card);
+  }
+
   .status-badge-genuine {
     @apply bg-[hsl(var(--status-genuine-bg))] text-[hsl(var(--status-genuine))] border border-[hsl(var(--status-genuine)/0.3)];
   }
@@ -158,11 +163,6 @@
 
   .status-badge-danger {
     @apply bg-[hsl(var(--status-danger-bg))] text-[hsl(var(--status-danger))] border border-[hsl(var(--status-danger)/0.3)];
-  }
-
-  .card-emergency {
-    background: var(--gradient-card);
-    box-shadow: var(--shadow-card);
   }
 
   .glow-accent {
