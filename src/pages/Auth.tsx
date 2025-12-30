@@ -8,7 +8,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { Shield, Mail, Lock, AlertTriangle, Loader2 } from "lucide-react";
-import { ThemeToggle } from "@/components/ThemeToggle";
 const emailSchema = z.string().trim().email({
   message: "Please enter a valid email address"
 });
@@ -131,9 +130,6 @@ export default function Auth() {
       </div>;
   }
   return <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="absolute top-4 right-4">
-        <ThemeToggle />
-      </div>
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
