@@ -1,8 +1,22 @@
-import { ShieldCheck, Radio, BarChart3, LogOut } from "lucide-react";
+import { ShieldCheck, Radio, BarChart3, LogOut, Phone } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+
+const emergencyNumbers = [
+  { name: "Police", number: "100", icon: "🚔" },
+  { name: "Fire Brigade", number: "101", icon: "🚒" },
+  { name: "Ambulance", number: "102", icon: "🚑" },
+  { name: "Disaster Management", number: "108", icon: "🆘" },
+  { name: "Women Helpline", number: "1091", icon: "👩" },
+  { name: "Child Helpline", number: "1098", icon: "👶" },
+];
 
 export function Header() {
   const navigate = useNavigate();
@@ -47,6 +61,39 @@ export function Header() {
           </Link>
 
           <div className="flex items-center gap-3">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2 border-destructive/50 text-destructive hover:bg-destructive/10">
+                  <Phone className="h-4 w-4" />
+                  <span className="hidden sm:inline">Emergency</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-0" align="end">
+                <div className="p-3 border-b border-border bg-destructive/10">
+                  <h3 className="font-semibold text-destructive flex items-center gap-2">
+                    <Phone className="h-4 w-4" />
+                    Emergency Numbers
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">India helplines</p>
+                </div>
+                <div className="p-2">
+                  {emergencyNumbers.map((item) => (
+                    <a
+                      key={item.number}
+                      href={`tel:${item.number}`}
+                      className="flex items-center justify-between p-2 rounded-md hover:bg-muted transition-colors"
+                    >
+                      <span className="flex items-center gap-2 text-sm">
+                        <span>{item.icon}</span>
+                        <span>{item.name}</span>
+                      </span>
+                      <span className="font-mono font-semibold text-primary">{item.number}</span>
+                    </a>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+            
             <Link to="/admin">
               <Button variant="outline" size="sm" className="gap-2">
                 <BarChart3 className="h-4 w-4" />
