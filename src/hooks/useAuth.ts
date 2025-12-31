@@ -58,6 +58,11 @@ export function useAuth() {
     return { error };
   };
 
+  const signInAsGuest = async () => {
+    const { error } = await supabase.auth.signInAnonymously();
+    return { error };
+  };
+
   const signOut = async () => {
     sessionStorage.removeItem('session_temporary');
     const { error } = await supabase.auth.signOut();
@@ -91,6 +96,7 @@ export function useAuth() {
     loading,
     signIn,
     signUp,
+    signInAsGuest,
     signOut,
   };
 }
