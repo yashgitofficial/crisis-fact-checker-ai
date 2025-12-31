@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { Shield, Mail, Lock, AlertTriangle, Loader2 } from "lucide-react";
+import { Shield, Mail, Lock, AlertTriangle, Loader2, User } from "lucide-react";
 const emailSchema = z.string().trim().email({
   message: "Please enter a valid email address"
 });
@@ -20,7 +20,8 @@ export default function Auth() {
     user,
     loading: authLoading,
     signIn,
-    signUp
+    signUp,
+    signInAsGuest
   } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -202,6 +203,43 @@ export default function Auth() {
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   {isLogin ? "Signing in..." : "Creating account..."}
                 </> : isLogin ? "Sign In" : "Create Account"}
+            </Button>
+
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or</span>
+              </div>
+            </div>
+
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full" 
+              disabled={loading}
+              onClick={async () => {
+                setLoading(true);
+                const { error } = await signInAsGuest();
+                if (error) {
+                  toast({
+                    title: "Guest Sign In Failed",
+                    description: error.message,
+                    variant: "destructive"
+                  });
+                } else {
+                  toast({
+                    title: "Welcome!",
+                    description: "You are signed in as a guest."
+                  });
+                  navigate("/", { replace: true });
+                }
+                setLoading(false);
+              }}
+            >
+              <User className="mr-2 h-4 w-4" />
+              Continue as Guest
             </Button>
           </form>
 
