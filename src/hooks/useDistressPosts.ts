@@ -101,25 +101,7 @@ export function useDistressPosts() {
     setError(null);
 
     try {
-      // Insert the post with pending status
-      const { data: insertedPost, error: insertError } = await supabase
-        .from('distress_posts')
-        .insert({
-          message: data.message,
-          location: data.location,
-          contact: data.contact || null,
-          verification_status: 'Pending',
-          confidence_score: 0,
-          ai_reason: 'Analyzing message...',
-        })
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-
-      console.log('Post inserted:', insertedPost.id);
-
-      // Call AI verification edge function
+      // Call AI verification FIRST before inserting
       const { data: verifyResult, error: verifyError } = await supabase.functions.invoke('verify-distress', {
         body: { message: data.message, location: data.location },
       });
@@ -131,29 +113,33 @@ export function useDistressPosts() {
 
       console.log('AI verification result:', verifyResult);
 
-      // Update the post with verification results
-      const { data: updatedPost, error: updateError } = await supabase
+      // Insert the post with verification results in one step
+      const { data: insertedPost, error: insertError } = await supabase
         .from('distress_posts')
-        .update({
-          verification_status: verifyResult.status,
-          confidence_score: verifyResult.confidence,
-          ai_reason: verifyResult.reason,
+        .insert({
+          message: data.message,
+          location: data.location,
+          contact: data.contact || null,
+          verification_status: verifyResult.status || 'Needs Verification',
+          confidence_score: verifyResult.confidence || 0.5,
+          ai_reason: verifyResult.reason || 'Verification completed.',
         })
-        .eq('id', insertedPost.id)
         .select()
         .single();
 
-      if (updateError) throw updateError;
+      if (insertError) throw insertError;
+
+      console.log('Post inserted with verification:', insertedPost.id);
 
       const result: DistressPost = {
-        id: updatedPost.id,
-        message: updatedPost.message,
-        location: updatedPost.location,
-        contact: updatedPost.contact,
-        timestamp: new Date(updatedPost.timestamp),
-        verification_status: updatedPost.verification_status as VerificationStatus,
-        confidence_score: Number(updatedPost.confidence_score),
-        ai_reason: updatedPost.ai_reason,
+        id: insertedPost.id,
+        message: insertedPost.message,
+        location: insertedPost.location,
+        contact: insertedPost.contact,
+        timestamp: new Date(insertedPost.timestamp),
+        verification_status: insertedPost.verification_status as VerificationStatus,
+        confidence_score: Number(insertedPost.confidence_score),
+        ai_reason: insertedPost.ai_reason,
       };
 
       setIsLoading(false);
