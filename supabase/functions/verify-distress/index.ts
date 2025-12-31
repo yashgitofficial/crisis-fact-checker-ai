@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { message, location } = await req.json();
+    const { message, location, contact } = await req.json();
     
     if (!message || !location) {
       return new Response(
@@ -21,14 +22,42 @@ serve(async (req) => {
       );
     }
 
-    console.log('Verifying distress message:', { message: message.substring(0, 50), location });
+    // Create Supabase client with service role for background updates
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    // Insert post immediately with Pending status
+    const { data: insertedPost, error: insertError } = await supabase
+      .from('distress_posts')
+      .insert({
+        message,
+        location,
+        contact: contact || null,
+        verification_status: 'Pending',
+        confidence_score: 0,
+        ai_reason: 'Analyzing message...',
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Insert error:', insertError);
+      throw insertError;
     }
 
-    const prompt = `You are a disaster-response verification assistant.
+    console.log('Post inserted:', insertedPost.id);
+
+    // Define verification function
+    const runVerification = async () => {
+      try {
+        const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+        if (!LOVABLE_API_KEY) {
+          console.error('LOVABLE_API_KEY is not configured');
+          return;
+        }
+
+        const prompt = `You are a disaster-response verification assistant.
 Analyze the following distress message and estimate how likely it is to be genuine.
 
 Message: ${message}
@@ -47,79 +76,97 @@ Respond ONLY in valid JSON with this exact structure:
   "reason": "brief explanation of your analysis"
 }`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: 'You are a disaster verification AI. Always respond with valid JSON only.' },
-          { role: 'user', content: prompt }
-        ],
-      }),
-    });
+        console.log('Calling AI for verification...');
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        console.error('Rate limit exceeded');
-        return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: 'You are a disaster verification AI. Always respond with valid JSON only.' },
+              { role: 'user', content: prompt }
+            ],
+          }),
+        });
+
+        if (!response.ok) {
+          console.error('AI gateway error:', response.status);
+          return;
+        }
+
+        const data = await response.json();
+        const aiContent = data.choices?.[0]?.message?.content;
+        
+        console.log('AI response:', aiContent);
+
+        // Parse the JSON response from AI
+        let result;
+        try {
+          let cleanContent = aiContent;
+          if (cleanContent.includes('```json')) {
+            cleanContent = cleanContent.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+          } else if (cleanContent.includes('```')) {
+            cleanContent = cleanContent.replace(/```\n?/g, '');
+          }
+          result = JSON.parse(cleanContent.trim());
+        } catch (parseError) {
+          console.error('Failed to parse AI response:', parseError);
+          result = {
+            status: 'Needs Verification',
+            confidence: 0.5,
+            reason: 'Unable to analyze message automatically. Manual verification recommended.'
+          };
+        }
+
+        // Validate and normalize the response
+        const validStatuses = ['Likely Genuine', 'Needs Verification', 'High Scam Probability'];
+        if (!validStatuses.includes(result.status)) {
+          result.status = 'Needs Verification';
+        }
+        result.confidence = Math.max(0, Math.min(1, Number(result.confidence) || 0.5));
+
+        console.log('Verification result:', result);
+
+        // Update post with verification results (using service role bypasses RLS)
+        const { error: updateError } = await supabase
+          .from('distress_posts')
+          .update({
+            verification_status: result.status,
+            confidence_score: result.confidence,
+            ai_reason: result.reason,
+          })
+          .eq('id', insertedPost.id);
+
+        if (updateError) {
+          console.error('Update error:', updateError);
+        } else {
+          console.log('Post updated with verification:', insertedPost.id);
+        }
+      } catch (bgError) {
+        console.error('Background verification error:', bgError);
       }
-      if (response.status === 402) {
-        console.error('Payment required');
-        return new Response(
-          JSON.stringify({ error: 'AI credits exhausted. Please add credits.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
-      throw new Error(`AI gateway error: ${response.status}`);
+    };
+
+    // Try to use EdgeRuntime.waitUntil for background processing, otherwise run inline
+    const edgeRuntime = (globalThis as any).EdgeRuntime;
+    if (edgeRuntime?.waitUntil) {
+      edgeRuntime.waitUntil(runVerification());
+    } else {
+      // Fallback: run without awaiting (fire and forget)
+      runVerification();
     }
 
-    const data = await response.json();
-    const aiContent = data.choices?.[0]?.message?.content;
-    
-    console.log('AI response:', aiContent);
-
-    // Parse the JSON response from AI
-    let result;
-    try {
-      // Clean up the response in case it has markdown code blocks
-      let cleanContent = aiContent;
-      if (cleanContent.includes('```json')) {
-        cleanContent = cleanContent.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-      } else if (cleanContent.includes('```')) {
-        cleanContent = cleanContent.replace(/```\n?/g, '');
-      }
-      result = JSON.parse(cleanContent.trim());
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError);
-      // Fallback response if parsing fails
-      result = {
-        status: 'Needs Verification',
-        confidence: 0.5,
-        reason: 'Unable to analyze message automatically. Manual verification recommended.'
-      };
-    }
-
-    // Validate and normalize the response
-    const validStatuses = ['Likely Genuine', 'Needs Verification', 'High Scam Probability'];
-    if (!validStatuses.includes(result.status)) {
-      result.status = 'Needs Verification';
-    }
-    
-    result.confidence = Math.max(0, Math.min(1, Number(result.confidence) || 0.5));
-
-    console.log('Verification result:', result);
-
+    // Return immediately with the inserted post
     return new Response(
-      JSON.stringify(result),
+      JSON.stringify({
+        success: true,
+        post: insertedPost,
+        message: 'Post submitted. AI verification in progress.'
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
@@ -127,10 +174,7 @@ Respond ONLY in valid JSON with this exact structure:
     console.error('Error in verify-distress function:', error);
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error',
-        status: 'Needs Verification',
-        confidence: 0.5,
-        reason: 'Verification system temporarily unavailable.'
+        error: error instanceof Error ? error.message : 'Unknown error'
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
