@@ -1,14 +1,23 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Send, MapPin, MessageSquare, Phone, Loader2 } from "lucide-react";
+import { Send, MapPin, MessageSquare, Phone, Loader2, ImagePlus, X, AlertTriangle, CheckCircle, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useDistressPosts } from "@/hooks/useDistressPosts";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+
+interface ImageAnalysisResult {
+  damageDetected: boolean;
+  damageType: string;
+  confidence: number;
+  authenticity: string;
+  reason: string;
+}
 
 const formSchema = z.object({
   message: z
@@ -30,6 +39,10 @@ type FormData = z.infer<typeof formSchema>;
 export function SubmissionForm() {
   const { addPost, isLoading } = useDistressPosts();
   const [charCount, setCharCount] = useState(0);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [imageAnalysis, setImageAnalysis] = useState<ImageAnalysisResult | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -44,6 +57,81 @@ export function SubmissionForm() {
       contact: "",
     },
   });
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Image must be less than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64 = event.target?.result as string;
+      setSelectedImage(base64);
+      setImageAnalysis(null);
+      
+      // Analyze the image
+      setIsAnalyzing(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('analyze-image', {
+          body: { imageBase64: base64 }
+        });
+
+        if (error) throw error;
+        setImageAnalysis(data);
+      } catch (error) {
+        console.error('Image analysis error:', error);
+        toast({
+          title: "Analysis failed",
+          description: "Could not analyze the image. You can still submit without analysis.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsAnalyzing(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    setImageAnalysis(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const getAuthenticityColor = (authenticity: string) => {
+    switch (authenticity) {
+      case 'likely authentic': return 'text-green-600';
+      case 'potentially misleading': return 'text-destructive';
+      default: return 'text-yellow-600';
+    }
+  };
+
+  const getAuthenticityIcon = (authenticity: string) => {
+    switch (authenticity) {
+      case 'likely authentic': return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'potentially misleading': return <AlertTriangle className="h-4 w-4 text-destructive" />;
+      default: return <HelpCircle className="h-4 w-4 text-yellow-600" />;
+    }
+  };
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -60,6 +148,7 @@ export function SubmissionForm() {
 
       reset();
       setCharCount(0);
+      removeImage();
     } catch (error) {
       toast({
         title: "Submission Failed",
@@ -142,6 +231,102 @@ export function SubmissionForm() {
           />
           {errors.contact && (
             <p className="text-sm text-destructive">{errors.contact.message}</p>
+          )}
+        </div>
+
+        {/* Image Upload Field */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <ImagePlus className="h-4 w-4 text-muted-foreground" />
+            Disaster Image{" "}
+            <span className="text-muted-foreground font-normal">(optional)</span>
+          </Label>
+          
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            onChange={handleImageSelect}
+            className="hidden"
+          />
+          
+          {!selectedImage ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-dashed border-2 h-24 flex flex-col gap-2"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <ImagePlus className="h-6 w-6 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Click to upload an image for AI analysis</span>
+            </Button>
+          ) : (
+            <div className="space-y-3">
+              <div className="relative inline-block">
+                <img 
+                  src={selectedImage} 
+                  alt="Selected" 
+                  className="max-h-40 rounded-lg border border-border"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute -top-2 -right-2 h-6 w-6"
+                  onClick={removeImage}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Analysis Results */}
+              {isAnalyzing && (
+                <div className="flex items-center gap-2 p-3 bg-secondary/50 rounded-lg">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">Analyzing image for damage...</span>
+                </div>
+              )}
+
+              {imageAnalysis && !isAnalyzing && (
+                <div className="p-4 bg-secondary/50 rounded-lg space-y-3 border border-border">
+                  <h4 className="font-semibold text-sm flex items-center gap-2">
+                    AI Damage Analysis
+                  </h4>
+                  
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Damage Detected:</span>
+                      <span className={`ml-2 font-medium ${imageAnalysis.damageDetected ? 'text-destructive' : 'text-green-600'}`}>
+                        {imageAnalysis.damageDetected ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                    
+                    <div>
+                      <span className="text-muted-foreground">Type:</span>
+                      <span className="ml-2 font-medium capitalize">{imageAnalysis.damageType}</span>
+                    </div>
+                    
+                    <div>
+                      <span className="text-muted-foreground">Confidence:</span>
+                      <span className="ml-2 font-medium">{Math.round(imageAnalysis.confidence * 100)}%</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-1">
+                      <span className="text-muted-foreground">Authenticity:</span>
+                      <span className={`ml-1 font-medium flex items-center gap-1 ${getAuthenticityColor(imageAnalysis.authenticity)}`}>
+                        {getAuthenticityIcon(imageAnalysis.authenticity)}
+                        <span className="capitalize">{imageAnalysis.authenticity}</span>
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-2 border-t border-border">
+                    <span className="text-muted-foreground text-sm">Reason: </span>
+                    <span className="text-sm">{imageAnalysis.reason}</span>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
 
