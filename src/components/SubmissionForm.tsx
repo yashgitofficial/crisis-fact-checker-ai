@@ -1,8 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Send, MapPin, MessageSquare, Phone, Loader2, ImagePlus, X, AlertTriangle, CheckCircle, HelpCircle } from "lucide-react";
+import { Send, MapPin, MessageSquare, Phone, Loader2, ImagePlus, X, AlertTriangle, CheckCircle, HelpCircle, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -43,6 +43,58 @@ export function SubmissionForm() {
   const [imageAnalysis, setImageAnalysis] = useState<ImageAnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // GPS coordinates state
+  const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [gpsStatus, setGpsStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [gpsError, setGpsError] = useState<string | null>(null);
+
+  // Request GPS on component mount
+  useEffect(() => {
+    requestGPS();
+  }, []);
+
+  const requestGPS = () => {
+    if (!navigator.geolocation) {
+      setGpsStatus('error');
+      setGpsError('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setGpsStatus('loading');
+    setGpsError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCoordinates({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        setGpsStatus('success');
+      },
+      (error) => {
+        setGpsStatus('error');
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setGpsError('Location access denied. Please enable location permissions.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setGpsError('Location information unavailable.');
+            break;
+          case error.TIMEOUT:
+            setGpsError('Location request timed out.');
+            break;
+          default:
+            setGpsError('Unable to get your location.');
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
 
   const {
     register,
@@ -139,6 +191,8 @@ export function SubmissionForm() {
         message: data.message,
         location: data.location,
         contact: data.contact,
+        latitude: coordinates?.latitude,
+        longitude: coordinates?.longitude,
       });
 
       toast({
@@ -232,6 +286,79 @@ export function SubmissionForm() {
           {errors.contact && (
             <p className="text-sm text-destructive">{errors.contact.message}</p>
           )}
+        </div>
+
+        {/* GPS Coordinates */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Navigation className="h-4 w-4 text-muted-foreground" />
+            GPS Coordinates
+          </Label>
+          <div className={`p-3 rounded-lg border ${
+            gpsStatus === 'success' 
+              ? 'bg-green-500/10 border-green-500/30' 
+              : gpsStatus === 'error' 
+                ? 'bg-destructive/10 border-destructive/30' 
+                : 'bg-secondary/50 border-border'
+          }`}>
+            {gpsStatus === 'loading' && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Getting your location...</span>
+              </div>
+            )}
+            {gpsStatus === 'success' && coordinates && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm text-green-600">
+                  <CheckCircle className="h-4 w-4" />
+                  <span>
+                    {coordinates.latitude.toFixed(6)}, {coordinates.longitude.toFixed(6)}
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={requestGPS}
+                  className="text-xs"
+                >
+                  Refresh
+                </Button>
+              </div>
+            )}
+            {gpsStatus === 'error' && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm text-destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span>{gpsError}</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={requestGPS}
+                  className="text-xs"
+                >
+                  Retry
+                </Button>
+              </div>
+            )}
+            {gpsStatus === 'idle' && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={requestGPS}
+                className="w-full"
+              >
+                <Navigation className="h-4 w-4 mr-2" />
+                Get GPS Location
+              </Button>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Exact GPS coordinates help emergency responders locate you faster
+          </p>
         </div>
 
         {/* Image Upload Field */}

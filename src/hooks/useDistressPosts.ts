@@ -106,7 +106,9 @@ export function useDistressPosts() {
         body: { 
           message: data.message, 
           location: data.location,
-          contact: data.contact || null
+          contact: data.contact || null,
+          latitude: data.latitude || null,
+          longitude: data.longitude || null,
         },
       });
 
