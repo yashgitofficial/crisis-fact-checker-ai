@@ -20,7 +20,9 @@ export type Database = {
           confidence_score: number
           contact: string | null
           id: string
+          latitude: number | null
           location: string
+          longitude: number | null
           message: string
           timestamp: string
           verification_status: string
@@ -30,7 +32,9 @@ export type Database = {
           confidence_score?: number
           contact?: string | null
           id?: string
+          latitude?: number | null
           location: string
+          longitude?: number | null
           message: string
           timestamp?: string
           verification_status?: string
@@ -40,7 +44,9 @@ export type Database = {
           confidence_score?: number
           contact?: string | null
           id?: string
+          latitude?: number | null
           location?: string
+          longitude?: number | null
           message?: string
           timestamp?: string
           verification_status?: string
