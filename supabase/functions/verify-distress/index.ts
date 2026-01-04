@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { message, location, contact } = await req.json();
+    const { message, location, contact, latitude, longitude } = await req.json();
     
     if (!message || !location) {
       return new Response(
@@ -34,6 +34,8 @@ serve(async (req) => {
         message,
         location,
         contact: contact || null,
+        latitude: latitude || null,
+        longitude: longitude || null,
         verification_status: 'Pending',
         confidence_score: 0,
         ai_reason: 'Analyzing message...',

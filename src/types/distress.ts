@@ -19,6 +19,8 @@ export interface SubmissionFormData {
   message: string;
   location: string;
   contact?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface AIVerificationResult {

@@ -1,4 +1,5 @@
-import { ShieldCheck, Radio, BarChart3, LogOut, Phone } from "lucide-react";
+import { useState } from "react";
+import { ShieldCheck, Radio, BarChart3, LogOut, Phone, MapPin } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,6 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { DistressMap } from "@/components/DistressMap";
 
 const emergencyNumbers = [
   { name: "Police", number: "100", icon: "🚔" },
@@ -21,6 +23,7 @@ const emergencyNumbers = [
 export function Header() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const [isMapOpen, setIsMapOpen] = useState(false);
 
   const handleLogout = async () => {
     const { error } = await signOut();
@@ -61,6 +64,16 @@ export function Header() {
           </Link>
 
           <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2 border-primary/50 text-primary hover:bg-primary/10"
+              onClick={() => setIsMapOpen(true)}
+            >
+              <MapPin className="h-4 w-4" />
+              <span className="hidden sm:inline">Verified Locations</span>
+            </Button>
+            
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2 border-destructive/50 text-destructive hover:bg-destructive/10">
@@ -118,6 +131,8 @@ export function Header() {
           </div>
         </div>
       </div>
+      
+      <DistressMap isOpen={isMapOpen} onClose={() => setIsMapOpen(false)} />
     </header>
   );
 }
