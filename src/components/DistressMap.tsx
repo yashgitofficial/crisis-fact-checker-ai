@@ -130,14 +130,25 @@ export function DistressMap({ isOpen, onClose }: DistressMapProps) {
                         <span>GPS: {loc.latitude.toFixed(6)}, {loc.longitude.toFixed(6)}</span>
                       </div>
                     </div>
-                    <Button
-                      size="sm"
-                      className="gap-2 shrink-0"
-                      onClick={() => openGoogleMapsNavigation(loc.latitude, loc.longitude)}
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      Navigate
-                    </Button>
+                    <div className="flex gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-2"
+                        onClick={onClose}
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => openGoogleMapsNavigation(loc.latitude, loc.longitude)}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Navigate
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
