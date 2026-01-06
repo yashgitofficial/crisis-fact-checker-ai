@@ -1,9 +1,22 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Max image size: 5MB in base64 (roughly 6.67MB as base64 string)
+const MAX_IMAGE_SIZE = 7 * 1024 * 1024;
+
+// Valid image MIME types
+const VALID_IMAGE_PREFIXES = [
+  'data:image/png;base64,',
+  'data:image/jpeg;base64,',
+  'data:image/jpg;base64,',
+  'data:image/gif;base64,',
+  'data:image/webp;base64,',
+];
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -12,11 +25,75 @@ serve(async (req) => {
   }
 
   try {
-    const { imageBase64 } = await req.json();
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
-    if (!imageBase64) {
+    // Authentication check
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
-        JSON.stringify({ error: 'No image provided' }),
+        JSON.stringify({ error: 'Unauthorized: Missing or invalid authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create authenticated client to verify user
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      console.error('Auth error:', claimsError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+    console.log('Authenticated user:', userId);
+
+    // Parse request body
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { imageBase64 } = requestBody;
+
+    // Validate image presence
+    if (!imageBase64 || typeof imageBase64 !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'No image provided or invalid format' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate image size
+    if (imageBase64.length > MAX_IMAGE_SIZE) {
+      return new Response(
+        JSON.stringify({ error: 'Image too large. Maximum size is 5MB.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate image format (must be data URL with valid image MIME type)
+    const hasValidPrefix = VALID_IMAGE_PREFIXES.some(prefix => imageBase64.startsWith(prefix));
+    
+    // Also accept raw base64 (will be converted to data URL)
+    const isRawBase64 = !imageBase64.startsWith('data:') && /^[A-Za-z0-9+/=]+$/.test(imageBase64.substring(0, 100));
+    
+    if (!hasValidPrefix && !isRawBase64) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid image format. Supported formats: PNG, JPEG, GIF, WebP' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
