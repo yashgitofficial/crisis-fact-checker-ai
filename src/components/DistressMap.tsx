@@ -84,8 +84,9 @@ export function DistressMap({ isOpen, onClose }: DistressMapProps) {
               </p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-5 w-5" />
+          <Button variant="outline" size="sm" onClick={onClose} className="gap-2">
+            <X className="h-4 w-4" />
+            Back to App
           </Button>
         </div>
 
