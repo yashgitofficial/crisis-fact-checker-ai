@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Navigation, MapPin, ExternalLink } from "lucide-react";
+import { ArrowLeft, Navigation, MapPin, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -85,8 +85,8 @@ export function DistressMap({ isOpen, onClose }: DistressMapProps) {
             </div>
           </div>
           <Button variant="outline" size="sm" onClick={onClose} className="gap-2">
-            <X className="h-4 w-4" />
-            Back to App
+            <ArrowLeft className="h-4 w-4" />
+            Back
           </Button>
         </div>
 
