@@ -333,15 +333,29 @@ export function SubmissionForm() {
                     {coordinates.latitude.toFixed(6)}, {coordinates.longitude.toFixed(6)}
                   </span>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={requestGPS}
-                  className="text-xs"
-                >
-                  Refresh
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={requestGPS}
+                    className="text-xs"
+                  >
+                    Refresh
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setCoordinates(null);
+                      setGpsStatus('idle');
+                    }}
+                    className="text-xs text-destructive hover:text-destructive"
+                  >
+                    Disconnect
+                  </Button>
+                </div>
               </div>
             )}
             {gpsStatus === 'error' && (
