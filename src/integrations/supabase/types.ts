@@ -25,6 +25,7 @@ export type Database = {
           longitude: number | null
           message: string
           timestamp: string
+          user_id: string | null
           verification_status: string
         }
         Insert: {
@@ -37,6 +38,7 @@ export type Database = {
           longitude?: number | null
           message: string
           timestamp?: string
+          user_id?: string | null
           verification_status?: string
         }
         Update: {
@@ -49,6 +51,7 @@ export type Database = {
           longitude?: number | null
           message?: string
           timestamp?: string
+          user_id?: string | null
           verification_status?: string
         }
         Relationships: []
