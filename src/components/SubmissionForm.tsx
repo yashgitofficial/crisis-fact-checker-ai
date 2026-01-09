@@ -64,6 +64,7 @@ export function SubmissionForm() {
     setGpsStatus('loading');
     setGpsError(null);
 
+    // First try with high accuracy
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setCoordinates({
@@ -72,26 +73,43 @@ export function SubmissionForm() {
         });
         setGpsStatus('success');
       },
-      (error) => {
-        setGpsStatus('error');
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            setGpsError('Location access denied. Please enable location permissions.');
-            break;
-          case error.POSITION_UNAVAILABLE:
-            setGpsError('Location information unavailable.');
-            break;
-          case error.TIMEOUT:
-            setGpsError('Location request timed out.');
-            break;
-          default:
-            setGpsError('Unable to get your location.');
-        }
+      (highAccuracyError) => {
+        // If high accuracy fails, try with lower accuracy (faster, more reliable)
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setCoordinates({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
+            setGpsStatus('success');
+          },
+          (error) => {
+            setGpsStatus('error');
+            switch (error.code) {
+              case error.PERMISSION_DENIED:
+                setGpsError('Location access denied. Please enable location permissions.');
+                break;
+              case error.POSITION_UNAVAILABLE:
+                setGpsError('Location information unavailable. Please enter your location manually.');
+                break;
+              case error.TIMEOUT:
+                setGpsError('Location request timed out. Please try again.');
+                break;
+              default:
+                setGpsError('Unable to get your location.');
+            }
+          },
+          {
+            enableHighAccuracy: false,
+            timeout: 15000,
+            maximumAge: 60000, // Accept cached position up to 1 minute old
+          }
+        );
       },
       {
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 0,
+        maximumAge: 30000, // Accept cached position up to 30 seconds old
       }
     );
   };
