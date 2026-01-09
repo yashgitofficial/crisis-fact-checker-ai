@@ -85,7 +85,7 @@ serve(async (req) => {
     // Create Supabase client with service role for background updates
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Insert post immediately with Pending status
+    // Insert post immediately with Pending status and user ownership
     const { data: insertedPost, error: insertError } = await supabase
       .from('distress_posts')
       .insert({
@@ -94,6 +94,7 @@ serve(async (req) => {
         contact: contact || null,
         latitude: latitude || null,
         longitude: longitude || null,
+        user_id: userId,
         verification_status: 'Pending',
         confidence_score: 0,
         ai_reason: 'Analyzing message...',
