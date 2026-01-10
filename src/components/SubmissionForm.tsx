@@ -82,16 +82,16 @@ export function SubmissionForm() {
             setGpsStatus('error');
             switch (error.code) {
               case error.PERMISSION_DENIED:
-                setGpsError('Location access denied. Please enable location permissions.');
+                setGpsError('Location access denied. Click the lock/site icon in your browser address bar → Site Settings → Location → Allow, then refresh the page.');
                 break;
               case error.POSITION_UNAVAILABLE:
-                setGpsError('Location information unavailable. Please enter your location manually.');
+                setGpsError('Location unavailable. Ensure GPS is enabled on your device.');
                 break;
               case error.TIMEOUT:
                 setGpsError('Location request timed out. Please try again.');
                 break;
               default:
-                setGpsError('Unable to get your location.');
+                setGpsError('Unable to get your location. Check browser permissions.');
             }
           },
           {
