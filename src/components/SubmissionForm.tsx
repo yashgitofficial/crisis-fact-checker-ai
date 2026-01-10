@@ -49,11 +49,6 @@ export function SubmissionForm() {
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [gpsError, setGpsError] = useState<string | null>(null);
 
-  // Request GPS on component mount
-  useEffect(() => {
-    requestGPS();
-  }, []);
-
   const requestGPS = () => {
     if (!navigator.geolocation) {
       setGpsStatus('error');
