@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Bot, User, Loader2 } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, User, Loader2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -65,6 +65,13 @@ const Chatbot = () => {
     }
   };
 
+  const resetChat = () => {
+    setMessages([
+      { role: 'assistant', content: 'Hi! I\'m here to help you with Sahayak. How can I assist you today?' }
+    ]);
+    setInput('');
+  };
+
   return (
     <>
       {/* Chat Toggle Button */}
@@ -85,14 +92,25 @@ const Chatbot = () => {
         <div className="fixed bottom-24 right-6 z-50 w-[350px] sm:w-[400px] animate-in slide-in-from-bottom-5 duration-300">
           <div className="bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[500px]">
             {/* Header */}
-            <div className="bg-primary p-4 flex items-center gap-3">
-              <div className="bg-primary-foreground/20 p-2 rounded-full">
-                <Bot className="h-5 w-5 text-primary-foreground" />
+            <div className="bg-primary p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary-foreground/20 p-2 rounded-full">
+                  <Bot className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-primary-foreground">Sahayak Assistant</h3>
+                  <p className="text-xs text-primary-foreground/70">Here to help</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-primary-foreground">Sahayak Assistant</h3>
-                <p className="text-xs text-primary-foreground/70">Here to help</p>
-              </div>
+              <Button
+                onClick={resetChat}
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/20"
+                title="Start new chat"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
             </div>
 
             {/* Messages */}
