@@ -45,7 +45,8 @@ export function Header() {
   return (
     <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
+        {/* Centered Logo and Title */}
+        <div className="flex flex-col items-center gap-4">
           <Link to="/" className="flex items-center gap-3">
             <div className="relative">
               <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-[hsl(28_92%_45%)] flex items-center justify-center shadow-glow">
@@ -53,7 +54,7 @@ export function Header() {
               </div>
               <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-status-genuine border-2 border-card pulse-live" />
             </div>
-            <div>
+            <div className="text-center">
               <h1 className="text-xl font-bold text-foreground tracking-tight">
                 Crisis Fact-Checker
               </h1>
@@ -63,7 +64,8 @@ export function Header() {
             </div>
           </Link>
 
-          <div className="flex items-center gap-3">
+          {/* Action Buttons Row */}
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
             <Button 
               variant="outline" 
               size="sm" 
@@ -71,17 +73,18 @@ export function Header() {
               onClick={() => setIsMapOpen(true)}
             >
               <MapPin className="h-4 w-4" />
-              <span className="hidden sm:inline">Verified Locations</span>
+              <span className="hidden xs:inline sm:inline">Verified Locations</span>
+              <span className="xs:hidden">Locations</span>
             </Button>
             
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2 border-destructive/50 text-destructive hover:bg-destructive/10">
                   <Phone className="h-4 w-4" />
-                  <span className="hidden sm:inline">Emergency</span>
+                  <span>Emergency</span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-64 p-0" align="end">
+              <PopoverContent className="w-64 p-0" align="center">
                 <div className="p-3 border-b border-border bg-destructive/10">
                   <h3 className="font-semibold text-destructive flex items-center gap-2">
                     <Phone className="h-4 w-4" />
@@ -110,9 +113,10 @@ export function Header() {
             <Link to="/admin">
               <Button variant="outline" size="sm" className="gap-2">
                 <BarChart3 className="h-4 w-4" />
-                <span className="hidden sm:inline">Dashboard</span>
+                <span>Dashboard</span>
               </Button>
             </Link>
+            
             {user && (
               <Button 
                 variant="ghost" 
@@ -124,6 +128,7 @@ export function Header() {
                 <span className="hidden sm:inline">Logout</span>
               </Button>
             )}
+            
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary border border-border">
               <Radio className="h-3.5 w-3.5 text-status-genuine" />
               <span className="text-xs font-medium text-status-genuine">LIVE</span>
