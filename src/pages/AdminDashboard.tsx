@@ -12,10 +12,13 @@ import {
   TrendingUp,
   Activity,
   Download,
-  CalendarIcon
+  CalendarIcon,
+  Sun,
+  Moon
 } from "lucide-react";
 import { exportToCSV } from "@/utils/exportCSV";
 import { toast } from "@/hooks/use-toast";
+import { useTheme } from "@/components/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -100,6 +103,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [datePreset, setDatePreset] = useState<DatePreset>("all");
   const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
+  const { theme, toggleTheme } = useTheme();
 
   // Filter posts based on date range
   const filteredPosts = useMemo(() => {
@@ -277,6 +281,19 @@ export default function AdminDashboard() {
               >
                 <Download className="h-4 w-4" />
                 <span className="hidden sm:inline">Export CSV</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleTheme}
+                className="h-9 w-9"
+                title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+              >
+                {theme === "light" ? (
+                  <Moon className="h-4 w-4" />
+                ) : (
+                  <Sun className="h-4 w-4" />
+                )}
               </Button>
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary border border-border">
                 <Activity className="h-3.5 w-3.5 text-status-genuine" />
