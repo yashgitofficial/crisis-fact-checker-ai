@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { ShieldCheck, Radio, BarChart3, LogOut, Phone, MapPin } from "lucide-react";
+import { ShieldCheck, Radio, BarChart3, LogOut, Phone, MapPin, Sun, Moon } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/components/ThemeProvider";
 import { toast } from "@/hooks/use-toast";
 import {
   Popover,
@@ -23,6 +24,7 @@ const emergencyNumbers = [
 export function Header() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [isMapOpen, setIsMapOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -116,6 +118,20 @@ export function Header() {
                 <span>Dashboard</span>
               </Button>
             </Link>
+            
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={toggleTheme}
+              className="h-9 w-9"
+              title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+            >
+              {theme === "light" ? (
+                <Moon className="h-4 w-4" />
+              ) : (
+                <Sun className="h-4 w-4" />
+              )}
+            </Button>
             
             {user && (
               <Button 
