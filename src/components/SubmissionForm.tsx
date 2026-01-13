@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Send, MapPin, MessageSquare, Phone, Loader2, ImagePlus, X, AlertTriangle, CheckCircle, HelpCircle, Navigation } from "lucide-react";
+import { Send, MapPin, MessageSquare, Phone, Loader2, ImagePlus, X, AlertTriangle, CheckCircle, HelpCircle, Navigation, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useDistressPosts } from "@/hooks/useDistressPosts";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 
 interface ImageAnalysisResult {
   damageDetected: boolean;
@@ -43,6 +44,9 @@ export function SubmissionForm() {
   const [imageAnalysis, setImageAnalysis] = useState<ImageAnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Voice recorder hook
+  const { isRecording, isProcessing, startRecording, stopRecording, error: voiceError } = useVoiceRecorder();
   
   // GPS coordinates state
   const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -113,6 +117,8 @@ export function SubmissionForm() {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -122,6 +128,37 @@ export function SubmissionForm() {
       contact: "",
     },
   });
+
+  const currentMessage = watch("message");
+
+  const handleVoiceToggle = async () => {
+    if (isRecording) {
+      const transcribedText = await stopRecording();
+      if (transcribedText) {
+        const newMessage = currentMessage ? `${currentMessage} ${transcribedText}` : transcribedText;
+        setValue("message", newMessage);
+        setCharCount(newMessage.length);
+        toast({
+          title: "Voice recorded",
+          description: "Your message has been transcribed.",
+        });
+      }
+    } else {
+      try {
+        await startRecording();
+        toast({
+          title: "Recording started",
+          description: "Speak your distress message clearly.",
+        });
+      } catch {
+        toast({
+          title: "Microphone access denied",
+          description: "Please allow microphone access to use voice input.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -248,14 +285,48 @@ export function SubmissionForm() {
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
             Distress Message *
           </Label>
-          <Textarea
-            id="message"
-            placeholder="Describe the emergency situation with specific details: number of people affected, type of emergency, current conditions, and any immediate needs..."
-            className="min-h-[120px] bg-secondary/50 border-border focus:border-primary/50 transition-colors resize-none"
-            {...register("message", {
-              onChange: (e) => setCharCount(e.target.value.length),
-            })}
-          />
+          <div className="relative">
+            <Textarea
+              id="message"
+              placeholder="Describe the emergency situation with specific details: number of people affected, type of emergency, current conditions, and any immediate needs..."
+              className="min-h-[120px] bg-secondary/50 border-border focus:border-primary/50 transition-colors resize-none pr-14"
+              {...register("message", {
+                onChange: (e) => setCharCount(e.target.value.length),
+              })}
+            />
+            <Button
+              type="button"
+              variant={isRecording ? "destructive" : "outline"}
+              size="icon"
+              className={`absolute right-2 top-2 h-10 w-10 ${isRecording ? 'animate-pulse' : ''}`}
+              onClick={handleVoiceToggle}
+              disabled={isProcessing}
+              title={isRecording ? "Stop recording" : "Record voice message"}
+            >
+              {isProcessing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isRecording ? (
+                <MicOff className="h-4 w-4" />
+              ) : (
+                <Mic className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          {isRecording && (
+            <p className="text-sm text-destructive flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
+              Recording... Speak clearly and tap to stop
+            </p>
+          )}
+          {isProcessing && (
+            <p className="text-sm text-primary flex items-center gap-2">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Transcribing your message...
+            </p>
+          )}
+          {voiceError && (
+            <p className="text-sm text-destructive">{voiceError}</p>
+          )}
           <div className="flex justify-between items-center">
             {errors.message && (
               <p className="text-sm text-destructive">{errors.message.message}</p>
