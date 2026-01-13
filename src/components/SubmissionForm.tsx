@@ -46,7 +46,7 @@ export function SubmissionForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Voice recorder hook
-  const { isRecording, isProcessing, startRecording, stopRecording, error: voiceError } = useVoiceRecorder();
+  const { isRecording, isProcessing, startRecording, stopRecording, transcript, error: voiceError, isSupported: voiceSupported } = useVoiceRecorder();
   
   // GPS coordinates state
   const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -131,32 +131,29 @@ export function SubmissionForm() {
 
   const currentMessage = watch("message");
 
-  const handleVoiceToggle = async () => {
+  // Update message when transcript changes
+  useEffect(() => {
+    if (transcript && transcript.trim()) {
+      const newMessage = currentMessage ? `${currentMessage} ${transcript.trim()}` : transcript.trim();
+      setValue("message", newMessage);
+      setCharCount(newMessage.length);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transcript]);
+
+  const handleVoiceToggle = () => {
     if (isRecording) {
-      const transcribedText = await stopRecording();
-      if (transcribedText) {
-        const newMessage = currentMessage ? `${currentMessage} ${transcribedText}` : transcribedText;
-        setValue("message", newMessage);
-        setCharCount(newMessage.length);
-        toast({
-          title: "Voice recorded",
-          description: "Your message has been transcribed.",
-        });
-      }
+      stopRecording();
+      toast({
+        title: "Recording stopped",
+        description: "Your message has been transcribed.",
+      });
     } else {
-      try {
-        await startRecording();
-        toast({
-          title: "Recording started",
-          description: "Speak your distress message clearly.",
-        });
-      } catch {
-        toast({
-          title: "Microphone access denied",
-          description: "Please allow microphone access to use voice input.",
-          variant: "destructive",
-        });
-      }
+      startRecording();
+      toast({
+        title: "Recording started",
+        description: "Speak your distress message clearly.",
+      });
     }
   };
 
