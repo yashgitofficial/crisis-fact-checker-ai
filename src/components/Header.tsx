@@ -75,8 +75,8 @@ export function Header() {
               onClick={() => setIsMapOpen(true)}
             >
               <MapPin className="h-4 w-4" />
-              <span className="hidden xs:inline sm:inline">Verified Locations</span>
-              <span className="xs:hidden">Locations</span>
+              <span className="hidden sm:inline">Verified Locations</span>
+              <span className="sm:hidden">Locations</span>
             </Button>
             
             <Popover>
