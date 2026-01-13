@@ -1,118 +1,145 @@
-import { useState, useRef, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 interface UseVoiceRecorderReturn {
   isRecording: boolean;
   isProcessing: boolean;
-  startRecording: () => Promise<void>;
-  stopRecording: () => Promise<string | null>;
+  startRecording: () => void;
+  stopRecording: () => void;
+  transcript: string;
   error: string | null;
+  isSupported: boolean;
+}
+
+// Extend Window interface for SpeechRecognition
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+  message: string;
 }
 
 export function useVoiceRecorder(): UseVoiceRecorderReturn {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [transcript, setTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isSupported, setIsSupported] = useState(true);
   
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  const recognitionRef = useRef<any>(null);
 
-  const startRecording = useCallback(async () => {
-    try {
-      setError(null);
-      
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        }
-      });
+  useEffect(() => {
+    // Check if Web Speech API is supported
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setIsSupported(false);
+      setError('Voice recognition is not supported in this browser. Try Chrome or Edge.');
+      return;
+    }
 
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
 
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start(100); // Collect data every 100ms
+    recognition.onstart = () => {
+      console.log('Speech recognition started');
       setIsRecording(true);
+      setError(null);
+    };
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          finalTranscript += result[0].transcript;
+        } else {
+          interimTranscript += result[0].transcript;
+        }
+      }
+
+      if (finalTranscript) {
+        setTranscript(prev => prev + ' ' + finalTranscript);
+      }
+    };
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.error('Speech recognition error:', event.error);
+      setIsRecording(false);
+      setIsProcessing(false);
+      
+      switch (event.error) {
+        case 'not-allowed':
+          setError('Microphone access denied. Please allow microphone access and try again.');
+          break;
+        case 'no-speech':
+          setError('No speech detected. Please try again.');
+          break;
+        case 'network':
+          setError('Network error. Please check your connection.');
+          break;
+        default:
+          setError(`Voice recognition error: ${event.error}`);
+      }
+    };
+
+    recognition.onend = () => {
+      console.log('Speech recognition ended');
+      setIsRecording(false);
+      setIsProcessing(false);
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, []);
+
+  const startRecording = useCallback(() => {
+    if (!recognitionRef.current) {
+      setError('Voice recognition not available');
+      return;
+    }
+
+    setTranscript('');
+    setError(null);
+    
+    try {
+      recognitionRef.current.start();
     } catch (err) {
-      console.error('Error starting recording:', err);
-      setError('Could not access microphone. Please check permissions.');
-      throw err;
+      console.error('Error starting recognition:', err);
+      // Recognition might already be running
+      if ((err as Error).message?.includes('already started')) {
+        recognitionRef.current.stop();
+        setTimeout(() => {
+          recognitionRef.current?.start();
+        }, 100);
+      }
     }
   }, []);
 
-  const stopRecording = useCallback(async (): Promise<string | null> => {
-    return new Promise((resolve) => {
-      if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') {
-        resolve(null);
-        return;
-      }
-
-      mediaRecorderRef.current.onstop = async () => {
-        setIsRecording(false);
-        setIsProcessing(true);
-
-        try {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          
-          // Convert blob to base64
-          const reader = new FileReader();
-          reader.readAsDataURL(audioBlob);
-          
-          reader.onloadend = async () => {
-            const base64Audio = (reader.result as string).split(',')[1];
-            
-            try {
-              const { data, error: fnError } = await supabase.functions.invoke('voice-to-text', {
-                body: { audio: base64Audio }
-              });
-
-              if (fnError) {
-                console.error('Transcription error:', fnError);
-                setError('Failed to transcribe audio. Please try again.');
-                resolve(null);
-                return;
-              }
-
-              setIsProcessing(false);
-              resolve(data.text || null);
-            } catch (err) {
-              console.error('Error calling transcription:', err);
-              setError('Failed to transcribe audio. Please try again.');
-              setIsProcessing(false);
-              resolve(null);
-            }
-          };
-        } catch (err) {
-          console.error('Error processing audio:', err);
-          setError('Failed to process audio. Please try again.');
-          setIsProcessing(false);
-          resolve(null);
-        }
-
-        // Stop all tracks
-        mediaRecorderRef.current?.stream.getTracks().forEach(track => track.stop());
-      };
-
-      mediaRecorderRef.current.stop();
-    });
-  }, []);
+  const stopRecording = useCallback(() => {
+    if (recognitionRef.current && isRecording) {
+      setIsProcessing(true);
+      recognitionRef.current.stop();
+    }
+  }, [isRecording]);
 
   return {
     isRecording,
     isProcessing,
     startRecording,
     stopRecording,
+    transcript,
     error,
+    isSupported,
   };
 }
