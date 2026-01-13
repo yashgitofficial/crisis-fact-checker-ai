@@ -310,10 +310,22 @@ export function SubmissionForm() {
             </Button>
           </div>
           {isRecording && (
-            <p className="text-sm text-destructive flex items-center gap-2">
+            <div className="flex items-center gap-3 p-3 bg-destructive/10 rounded-lg border border-destructive/30">
               <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
-              Recording... Speak clearly and tap to stop
-            </p>
+              <p className="text-sm text-destructive flex-1">
+                Recording... Speak clearly
+              </p>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={stopRecording}
+                className="gap-2"
+              >
+                <MicOff className="h-4 w-4" />
+                Stop Recording
+              </Button>
+            </div>
           )}
           {isProcessing && (
             <p className="text-sm text-primary flex items-center gap-2">
